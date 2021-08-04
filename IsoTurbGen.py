@@ -47,15 +47,15 @@ import matplotlib.pyplot as plt
 
 ####### Grid Size and Resolution #######
 
-NX,NY, NZ = 256,128,16 
+NX,NY, NZ = 512,64,64 
 
-DX,DY,DZ=  4,4,4
+DX,DY,DZ=  19.6875,19.6875,19.6875
 
 ####### Kolmogrov Spectrum function #######
 
-sigmaV = 1.  # velocity dispersion
+sigmaV = 0.01  # velocity dispersion
 
-kmax = 2. * np.pi / 400.  # where E(k) peaks
+kmax = 2. * np.pi /10080.  # where E(k) peaks
 
 def Ek_kolm(k, kmax, sigmaV):
     """
@@ -65,19 +65,6 @@ def Ek_kolm(k, kmax, sigmaV):
     """
     kc = kmax / 0.6
     E_k = (k/kc)**(- 5./3) * np.exp(-1./(k / kc)) * (sigmaV**2 / 2.71) / kc
-    return E_k
-
-####### Von-Karman Spectrum function #######
-
-alpha_eps_pow2_3 = 0.02  # scaling constant
-
-L_scale = 1.  # integral length scale 
-
-def Ek_vkarm(k, alpha_eps_pow2_3, L_scale):
-    """
-    Von Karman Turbulence power spectrum E(k) (1948)
-    """
-    E_k = alpha_eps_pow2_3*L_scale**(5/3)*((L_scale**(4)*k**(4))/(1+L_scale**(2)*k**(2))**(17/6))
     return E_k
 
 ####### Extract 3D Velocity Spectrum function #######

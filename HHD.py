@@ -51,81 +51,58 @@ Multiple I/O file formats are supported.
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
-
+from matplotlib import collections as matcoll
+plt.rcParams['text.usetex'] = True
 #******************************************************#
 
 # Option (1) Read as multiple files in binary format
 
-# # Number of grids in each direction NX,NY,NZ
-
-# NX, NY, NZ = 128,128,128
-
-# # Spacing of grids in each direction DX,DY,DZ
-
-# DX, DY, DZ = 0.5,0.5,0.5
-
-# # Read Velocity field components (Vx,Vy,Vz) from the corresponding 3 binary files
-
-# Vx = np.fromfile('u.bin', dtype=np.float32).reshape(NX, NY, NZ)
-# Vy = np.fromfile('v.bin', dtype=np.float32).reshape(NX, NY, NZ)
-# Vz = np.fromfile('w.bin', dtype=np.float32).reshape(NX, NY, NZ)
-
-# # Check for correct dimesnion
-
-# if Vx.ndim != 3:
-#     print('Not a 3D field in the required form!')
-
-#******************************************************#
-
-# Option (2) Read as a single file in binary format
-
-# # Number of grids in each direction NX,NY,NZ
-
-# NX, NY, NZ = 256,128,16
-
-# # Spacing of grids in each direction DX,DY,DZ
-
-# DX, DY, DZ = 4,4,4
-
-# # Read Velocity field components (Vx,Vy,Vz) accordingly from one binary file
-
-# U = np.fromfile('v0_xyz_256_128_16.dat', dtype=np.float32).reshape(3, NX, NY, NZ)
-
-# # Check for correct dimesnion
-
-# if U.shape[0] != 3:
-#     print('Not a 3D field in required form!')
-
-# # Extract 3D Vector field components Vx,Vy,Vz
-
-# Vx,Vy,Vz = U[0],U[1],U[2]
-
-#******************************************************#
-
-# Option (3) Read as h5 file format
-
-# Read Velocity field components (Vx,Vy,Vz) accordingly from h5 datasets ('u','v','w')
-
-hf = h5py.File('windgen.h5', 'r')
-
-Vx= np.array(hf.get('u')) 
-Vy= np.array(hf.get('v')) 
-Vz= np.array(hf.get('w')) 
-
 # Number of grids in each direction NX,NY,NZ
 
-NX,NY,NZ= Vx.shape
+NX, NY, NZ = 512,64,64
 
 # Spacing of grids in each direction DX,DY,DZ
 
-DX, DY, DZ = 0.5,0.5,0.5
+DX, DY, DZ = 19.6875,19.6875,19.6875
+
+# Read Velocity field components (Vx,Vy,Vz) from the corresponding 3 binary files
+
+Vx = np.fromfile('test_u.bin', dtype=np.float32).reshape(NX, NY, NZ)
+Vy = np.fromfile('test_v.bin', dtype=np.float32).reshape(NX, NY, NZ)
+Vz = np.fromfile('test_w.bin', dtype=np.float32).reshape(NX, NY, NZ)
 
 # Check for correct dimesnion
 
 if Vx.ndim != 3:
     print('Not a 3D field in the required form!')
 
-hf.close()
+
+#******************************************************#
+
+# Option (2) Read as h5 file format
+
+# Read Velocity field components (Vx,Vy,Vz) accordingly from h5 datasets ('u','v','w')
+
+# hf = h5py.File('windgen.h5', 'r')
+
+# Vx= np.array(hf.get('u')) 
+# Vy= np.array(hf.get('v')) 
+# Vz= np.array(hf.get('w')) 
+
+# # Number of grids in each direction NX,NY,NZ
+
+# NX,NY,NZ= Vx.shape
+
+# # Spacing of grids in each direction DX,DY,DZ
+
+# DX, DY, DZ = 19.6875,19.6875,19.6875
+
+# # Check for correct dimesnion
+
+# if Vx.ndim != 3:
+#     print('Not a 3D field in the required form!')
+
+# hf.close()
 
 #*********Perfrom multi-dimensional FFT analysis*********#
 
@@ -166,9 +143,20 @@ V_incompressible_z = Vz - V_compressible_z
 div_original = np.fft.ifftn((np.fft.fftn(Vx) * kx + np.fft.fftn(Vy)
                              * ky + np.fft.fftn(Vz) * kz) * 1j * 2. * np.pi)
 
+div_original_x = np.fft.ifftn((np.fft.fftn(Vx) * kx) * 1j * 2. * np.pi)
+div_original_y = np.fft.ifftn((np.fft.fftn(Vy) * ky) * 1j * 2. * np.pi)
+div_original_z = np.fft.ifftn((np.fft.fftn(Vz) * kz) * 1j * 2. * np.pi)
+
+
 # Check the max divergence value for the extracted incompressible vector field.
 div_incompressible = np.fft.ifftn((np.fft.fftn(V_incompressible_x) * kx + np.fft.fftn(V_incompressible_y)
                                    * ky + np.fft.fftn(V_incompressible_z) * kz) * 1j * 2. * np.pi)
+
+div_incompressible_x = np.fft.ifftn((np.fft.fftn(V_incompressible_x) * kx) * 1j * 2. * np.pi)
+div_incompressible_y = np.fft.ifftn((np.fft.fftn(V_incompressible_y) * ky) * 1j * 2. * np.pi)
+div_incompressible_z = np.fft.ifftn((np.fft.fftn(V_incompressible_z) * kz) * 1j * 2. * np.pi)
+
+
 
 print(' ! Helmholtz Decomposition Performed Successfully !\n')
 
@@ -226,30 +214,87 @@ Vcomp_mag = np.sqrt(V_compressible_x[0, :, :] ** 2 +
 # print('one check:', np.min(Vx[0,:,:]))
 
 ######## Contour plots at a slice in XY Plane ########
-plt.figure(figsize=(8,3))
-plt.contourf(X, Y, np.rot90(Vx[:,:,0],3), 600, cmap='jet')
-plt.colorbar()
-plt.title('J.Mann Velocity Compment (X)')
-plt.grid()
-plt.gca().set_aspect("equal")
-plt.tight_layout()
+# plt.figure(figsize=(5.5,5.5))
+# plt.contourf(Y, Z, np.rot90(Vx[128,:,:],3), 600, cmap='seismic')
+# plt.title('Mann Synthetic Velocity Compment', fontsize=17)
+# plt.grid()
+# plt.xlabel("Y [m]",fontweight='bold',fontsize=13)
+# plt.ylabel("Z [m]",fontweight='bold',fontsize=13)
+# plt.xticks(fontweight='bold',fontsize=13)
+# plt.yticks(fontweight='bold',fontsize=13)
+# plt.colorbar(orientation="horizontal",label='$u$').ax.tick_params(labelsize=13)
+# plt.gca().set_aspect("equal")
+# plt.tight_layout()
+# plt.savefig('original.pdf') 
 
-plt.figure(figsize=(8,3))
-plt.contourf(X, Y, np.rot90(V_incompressible_x[:,:,0].real,3), 600, cmap='jet')
-plt.colorbar()
-plt.title('Incompressible Velocity Compment(X)')
-plt.grid()
-plt.gca().set_aspect("equal")
-plt.tight_layout()
 
-plt.figure(figsize=(8,3))
-plt.contourf(X, Y, np.rot90(V_compressible_x[:,:,0].real,3), 600, cmap='jet')
-plt.colorbar()
-plt.title('Compressible Velocity Compment (X)')
-plt.grid()
-plt.gca().set_aspect("equal")
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(5.5,5.5))
+# plt.contourf(Y, Z, np.rot90(V_incompressible_x[128,:,:].real,3), 600, cmap='seismic')
+# plt.title('Divergence Free Velocity Component',fontsize=17)
+# plt.grid()
+# plt.xlabel("Y [m]",fontweight='bold',fontsize=13)
+# plt.ylabel("Z [m]",fontweight='bold',fontsize=13)
+# plt.xticks(fontweight='bold',fontsize=13)
+# plt.yticks(fontweight='bold',fontsize=13)
+# plt.colorbar(orientation="horizontal",label='$u$').ax.tick_params(labelsize=12)
+# plt.gca().set_aspect("equal")
+# plt.tight_layout()
+# plt.savefig('div_free.pdf') 
+
+
+# plt.figure(figsize=(5.5,5.5))
+# plt.contourf(Y, Z, np.rot90(V_compressible_x[128,:,:].real,3), 600, cmap='seismic')
+# plt.title('Divergent Velocity Compment',fontsize=17)
+# plt.grid()
+# plt.xlabel("Y [m]",fontweight='bold',fontsize=13)
+# plt.ylabel("Z [m]",fontweight='bold',fontsize=13)
+# plt.xticks(fontweight='bold',fontsize=13)
+# plt.yticks(fontweight='bold',fontsize=13)
+# plt.colorbar(orientation="horizontal",label='$u$').ax.tick_params(labelsize=12)
+# plt.gca().set_aspect("equal")
+# plt.tight_layout()
+# plt.savefig("divergent.pdf")
+# plt.show()
+
+######## PLot divergence along line ########
+# plt.figure(figsize=(10,3))
+# lines_x = []
+# lines_y = []
+# lines_z = []
+# lines_vec = []
+# fig, ax = plt.subplots(figsize=(10,3))
+# for i in range(len(X[0:64])):
+#     pair_x=[(X[i],0), (X[i], (div_original_x[i,32,32]).real)]
+#     pair_y=[(X[i],0), (X[i], (div_original_y[i,32,32]).real)]
+#     pair_z=[(X[i],0), (X[i], (div_original_z[i,32,32]).real)]
+#     pair_vec=[(X[i],0), (X[i],(div_original[i,32,32]).real)]
+#     lines_x.append(pair_x)
+#     lines_y.append(pair_y)
+#     lines_z.append(pair_z)
+#     lines_vec.append(pair_vec)
+# linecoll = matcoll.LineCollection(lines_x,colors=['Red'])
+# ax.add_collection(linecoll)
+# linecoll = matcoll.LineCollection(lines_y,colors=['Green'])
+# ax.add_collection(linecoll)
+# linecoll = matcoll.LineCollection(lines_z,colors=['Blue'])
+# ax.add_collection(linecoll)
+# linecoll = matcoll.LineCollection(lines_vec,colors=['Black'])
+# ax.add_collection(linecoll)
+# plt.axhline(y=0.0, color='k', linestyle='-')
+# plt.scatter(X[0:64], (div_original_x[0:64,32,32]).real, marker='o',c='Red',label='du1/dx1')
+# plt.scatter(X[0:64], (div_original_y[0:64,32,32]).real, marker='o',c='Green',label='du2/dx2')
+# plt.scatter(X[0:64],(div_original_z[0:64,32,32]).real, marker='o',c='Blue',label='du3/dx3')
+# plt.scatter(X[0:64],(div_original[0:64,32,32]).real, marker='o',c='Black',label='Div(u)')
+# ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize=16)
+# plt.title('Divergence vs. its three components (uncorrected)',fontsize=16)
+# plt.xlabel("X [m]",fontsize=16)
+# plt.ylabel("du/dx , Div(u)",fontsize=16)
+# plt.xticks(fontweight='bold',fontsize=14)
+# plt.yticks(fontweight='bold',fontsize=14)
+# # plt.ylim(0,30)
+# plt.tight_layout()
+# plt.savefig('div_uncorrected.pdf')  
+# plt.show()
 
 ######## Write the incompressible vector field components in binary format ########
 
@@ -263,10 +308,18 @@ plt.show()
 #     'vz_inc_'+str(NX)+'_'+str(NY)+'_'+str(NZ)+'.dat')
 # print('Binary files written successfully !')
 
+
+# print(V_incompressible_x.shape)
+
 ######## Write the incompressible vector field in h5 format ########
 hfw = h5py.File('windgen_incompressible.h5', 'w')
 hfw.create_dataset('u',data=V_incompressible_x.real)
 hfw.create_dataset('v',data=V_incompressible_y.real)
 hfw.create_dataset('w',data=V_incompressible_z.real)
+
+# hfw.create_dataset('u',data=Vx)
+# hfw.create_dataset('v',data=Vy)
+# hfw.create_dataset('w',data=Vz)
+
 hfw.close()
 print('HDF5 file written successfully !')
